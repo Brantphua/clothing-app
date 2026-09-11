@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f4ee" />
+    <title>Cloth &amp; Form — Local wardrobe organiser</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <div class="brand-lockup">
+          <div class="brand-mark">C<span>·</span>F</div>
+          <div>
+            <div class="brand-name">cloth &amp; form</div>
+            <div class="brand-subtitle">your local wardrobe</div>
+          </div>
+        </div>
+
+        <div class="local-badge"><span class="status-dot"></span> Stored on this device</div>
+
+        <nav class="main-nav">
+          <button class="nav-item active" data-view="wardrobe"><span class="nav-icon">⌂</span> Wardrobe <span class="nav-count" id="navCount">8</span></button>
+          <button class="nav-item" data-view="studio"><span class="nav-icon">✦</span> Outfit studio</button>
+          <button class="nav-item" data-view="profile"><span class="nav-icon">◒</span> My profile</button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <button class="sidebar-link" id="exportButton"><span>⇩</span> Export wardrobe</button>
+          <label class="sidebar-link file-link"><span>⇧</span> Import wardrobe <input id="importInput" type="file" accept="application/json" /></label>
+          <div class="sidebar-note">
+            <span class="note-icon">⌁</span>
+            <p>Your pieces stay in this browser. Export a backup before clearing browser data.</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="eyebrow">Friday, 11 September 2026 <span class="eyebrow-line"></span> Singapore</div>
+          <div class="topbar-actions">
+            <button class="icon-button" id="helpButton" aria-label="About this prototype">?</button>
+            <button class="avatar-button" id="profileShortcut" aria-label="Open profile">JM</button>
+          </div>
+        </header>
+
+        <section class="view" id="wardrobeView">
+          <div class="page-heading">
+            <div>
+              <div class="section-kicker">The edit</div>
+              <h1>Make the clothes<br /><em>you own</em> work harder.</h1>
+              <p class="lede">A calmer way to see your wardrobe, build combinations, and get dressed with intention.</p>
+            </div>
+            <button class="primary-button" id="addItemButton"><span class="button-plus">＋</span> Add a piece</button>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-card stat-highlight">
+              <div class="stat-label">Pieces in rotation</div>
+              <div class="stat-value" id="pieceCount">8</div>
+              <div class="stat-foot">across your edit <span>↗</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Outfit ideas</div>
+              <div class="stat-value" id="outfitCount">12</div>
+              <div class="stat-foot">from what you own <span>✦</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Your fit profile</div>
+              <div class="stat-value stat-profile" id="profileStat">Balanced</div>
+              <div class="stat-foot">tune your suggestions <span>→</span></div>
+            </div>
+          </div>
+
+          <div class="workspace-grid">
+            <section class="wardrobe-panel panel-card">
+              <div class="panel-heading">
+                <div>
+                  <div class="section-kicker">Your collection</div>
+                  <h2>Wardrobe pieces</h2>
+                </div>
+                <div class="view-tools">
+                  <label class="search-field"><span>⌕</span><input id="searchInput" type="search" placeholder="Search your edit" /></label>
+                  <button class="filter-button" id="filterButton">Filter <span>⌄</span></button>
+                </div>
+              </div>
+
+              <div class="category-tabs" role="tablist" aria-label="Wardrobe categories">
+                <button class="category-tab active" data-category="all">All <span id="allCount">8</span></button>
+                <button class="category-tab" data-category="top">Tops <span id="topCount">0</span></button>
+                <button class="category-tab" data-category="bottom">Bottoms <span id="bottomCount">0</span></button>
+                <button class="category-tab" data-category="dress">Dresses <span id="dressCount">0</span></button>
+                <button class="category-tab" data-category="outerwear">Outerwear <span id="outerwearCount">0</span></button>
+              </div>
+
+              <div class="filter-drawer" id="filterDrawer" hidden>
+                <label>Color
+                  <select id="colorFilter">
+                    <option value="all">All colors</option>
+                    <option value="neutral">Neutrals</option>
+                    <option value="blue">Blue</option>
+                    <option value="green">Green</option>
+                    <option value="red">Red / pink</option>
+                    <option value="yellow">Yellow / orange</option>
+                  </select>
+                </label>
+                <label>Sort by
+                  <select id="sortFilter">
+                    <option value="recent">Recently added</option>
+                    <option value="name">Name</option>
+                    <option value="color">Color</option>
+                  </select>
+                </label>
+                <button class="text-button" id="clearFilters">Clear</button>
+              </div>
+
+              <div class="clothing-grid" id="clothingGrid"></div>
+              <div class="empty-state" id="emptyState" hidden>
+                <div class="empty-icon">＋</div>
+                <h3>No pieces here yet</h3>
+                <p>Add your first item and start building your edit.</p>
+                <button class="secondary-button" id="emptyAddButton">Add a piece</button>
+              </div>
+            </section>
+
+            <aside class="pairing-panel panel-card" id="pairingPanel">
+              <div class="pairing-heading">
+                <div>
+                  <div class="section-kicker">A considered combination</div>
+                  <h2>Today's pairing</h2>
+                </div>
+                <button class="ghost-icon-button" id="shuffleButton" aria-label="Shuffle outfit">⤨</button>
+              </div>
+              <div class="pairing-date">Built around your <span id="pairingProfileLabel">Balanced</span> profile</div>
+              <div class="mannequin-stage" id="mannequinStage"></div>
+              <div class="pairing-details">
+                <div class="pairing-items" id="pairingItems"></div>
+                <div class="compatibility-row">
+                  <div>
+                    <div class="compatibility-label">Color compatibility</div>
+                    <div class="compatibility-note" id="compatibilityNote">Soft contrast, easy to repeat</div>
+                  </div>
+                  <div class="compatibility-score" id="compatibilityScore">86<span>%</span></div>
+                </div>
+                <div class="profile-tip" id="profileTip"><span>◒</span> Selected for a balanced, easy silhouette.</div>
+                <button class="primary-button wide-button" id="saveOutfitButton">Save this outfit <span>→</span></button>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view hidden-view" id="studioView">
+          <div class="page-heading compact-heading">
+            <div>
+              <div class="section-kicker">The fitting room</div>
+              <h1>Build a look<br /><em>from your edit.</em></h1>
+              <p class="lede">Choose a base piece in your wardrobe, then keep the combinations that feel like you.</p>
+            </div>
+          </div>
+          <div class="studio-grid">
+            <section class="studio-mannequin panel-card">
+              <div class="panel-heading"><div><div class="section-kicker">Preview</div><h2>Mannequin view</h2></div><span class="preview-badge">Illustrated preview</span></div>
+              <div class="large-mannequin-stage" id="studioMannequinStage"></div>
+            </section>
+            <section class="studio-controls panel-card">
+              <div class="section-kicker">Choose pieces</div>
+              <h2>Shape the outfit</h2>
+              <p class="muted-copy">Start with one piece. The pairing engine will suggest the rest using color and your fit profile.</p>
+              <div class="studio-select-list" id="studioSelectList"></div>
+              <button class="secondary-button wide-button" id="studioShuffleButton">Try another combination <span>⤨</span></button>
+            </section>
+          </div>
+        </section>
+
+        <section class="view hidden-view" id="profileView">
+          <div class="page-heading compact-heading">
+            <div>
+              <div class="section-kicker">The starting point</div>
+              <h1>Your shape,<br /><em>your rules.</em></h1>
+              <p class="lede">Choose the visual profile that feels closest to you. It guides proportions and styling suggestions — it never limits what you can wear.</p>
+            </div>
+          </div>
+          <section class="profile-card panel-card">
+            <div class="profile-card-copy"><div class="section-kicker">Body shape</div><h2>Which shape feels closest to you?</h2><p>Pick a simple visual reference. It guides suggestions, never your choices.</p></div>
+            <div class="profile-options" id="profileOptions"></div>
+            <div class="profile-save-row"><span id="profileSavedMessage">Changes are saved on this device.</span><button class="primary-button" id="saveProfileButton">Save profile</button></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="itemModal" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal-close" id="closeModalButton" aria-label="Close">×</button>
+        <div class="section-kicker">Add to the edit</div>
+        <h2 id="modalTitle">Bring in a piece</h2>
+        <p class="modal-intro">Add a photo if you have one, or use a sample piece to explore the prototype.</p>
+        <div class="capture-zone">
+          <div class="capture-preview" id="capturePreview"><span>✧</span><small>no image yet</small></div>
+          <div class="capture-actions">
+            <label class="secondary-button file-picker">Take a photo / upload<input id="imageInput" type="file" accept="image/*" capture="environment" /></label>
+            <button class="text-button" id="useSampleButton">Use a sample placeholder</button>
+          </div>
+        </div>
+        <div class="ai-placeholder"><span class="ai-sparkle">✦</span><div><strong>AI tagging is paused in this prototype.</strong><p>Choose the category manually below. Recognition can be added later without changing your wardrobe data.</p></div></div>
+        <form id="itemForm">
+          <div class="form-grid">
+            <label class="form-field full-field">Piece name<input id="itemName" type="text" placeholder="e.g. Linen weekend shirt" required /></label>
+            <label class="form-field">Category<select id="itemCategory" required><option value="top">Top</option><option value="bottom">Bottom</option><option value="dress">Dress</option><option value="outerwear">Outerwear</option></select></label>
+            <label class="form-field">Color<select id="itemColor" required><option value="ivory">Ivory</option><option value="navy">Navy</option><option value="sage">Sage</option><option value="terracotta">Terracotta</option><option value="ochre">Ochre</option><option value="black">Black</option><option value="denim">Denim</option><option value="rose">Rose</option></select></label>
+            <label class="form-field">Fit<select id="itemFit"><option value="relaxed">Relaxed</option><option value="regular" selected>Regular</option><option value="tailored">Tailored</option></select></label>
+            <label class="form-field">Pattern<select id="itemPattern"><option value="solid">Solid</option><option value="stripe">Stripe</option><option value="floral">Floral</option><option value="check">Check</option></select></label>
+          </div>
+          <div class="modal-footer"><span class="form-hint">Stored locally in this browser</span><button type="submit" class="primary-button">Add piece <span>→</span></button></div>
+        </form>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
