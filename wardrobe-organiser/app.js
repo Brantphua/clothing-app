@@ -65,6 +65,7 @@ const state = {
   outfit: [],
   savedIds: new Set(),
   uploadedImage: null,
+  uploadedFilename: '',
   sampleColorIndex: 0
 };
 
@@ -345,8 +346,21 @@ function showToast(message) {
   showToast.timeout = setTimeout(() => toast.classList.remove('show'), 2400);
 }
 
-function openModal() { document.querySelector('#itemModal').hidden = false; document.querySelector('#itemName').focus(); }
-function closeModal() { document.querySelector('#itemModal').hidden = true; state.uploadedImage = null; document.querySelector('#capturePreview').className = 'capture-preview'; }
+function openModal() {
+  document.querySelector('#itemModal').hidden = false;
+  document.querySelector('#aiStatus').textContent = 'Add an image, then review the suggested details before saving.';
+  document.querySelector('#analyzeImageButton').disabled = !state.uploadedImage;
+  document.querySelector('#itemName').focus();
+}
+function closeModal() {
+  document.querySelector('#itemModal').hidden = true;
+  state.uploadedImage = null;
+  state.uploadedFilename = '';
+  document.querySelector('#capturePreview').className = 'capture-preview';
+  document.querySelector('#capturePreview').style.backgroundImage = '';
+  document.querySelector('#analyzeImageButton').disabled = true;
+  document.querySelector('#analyzeImageButton').innerHTML = 'Recognise with DeepSeek <span>✦</span>';
+}
 
 function makeId() { return `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 
@@ -365,15 +379,58 @@ function useSamplePlaceholder() {
   document.querySelector('#itemName').value = names[state.sampleColorIndex % names.length];
   document.querySelector('#itemColor').value = color;
   document.querySelector('#capturePreview').className = 'capture-preview';
+  document.querySelector('#aiStatus').textContent = 'This is a placeholder. Add a real image to use DeepSeek recognition.';
   showToast('Placeholder selected — choose a category and add it');
 }
 
 function readImage(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (!file.type.startsWith('image/')) return showToast('Please choose an image file');
+  state.uploadedFilename = file.name;
   const reader = new FileReader();
-  reader.onload = () => { state.uploadedImage = reader.result; const preview = document.querySelector('#capturePreview'); preview.className = 'capture-preview has-image'; preview.style.backgroundImage = `url("${reader.result}")`; };
+  reader.onload = () => {
+    state.uploadedImage = reader.result;
+    const preview = document.querySelector('#capturePreview');
+    preview.className = 'capture-preview has-image';
+    preview.style.backgroundImage = `url("${reader.result}")`;
+    document.querySelector('#analyzeImageButton').disabled = false;
+    document.querySelector('#aiStatus').textContent = 'Image ready. Ask DeepSeek to suggest the clothing details.';
+  };
+  reader.onerror = () => showToast('That image could not be read');
   reader.readAsDataURL(file);
+}
+
+async function analyzeClothing() {
+  if (!state.uploadedImage) return showToast('Add a clothing image first');
+  const button = document.querySelector('#analyzeImageButton');
+  const status = document.querySelector('#aiStatus');
+  button.disabled = true;
+  button.textContent = 'Recognising…';
+  status.textContent = 'DeepSeek is reviewing the image…';
+  try {
+    const response = await fetch('/api/analyze-clothing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: state.uploadedImage, filename: state.uploadedFilename })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Recognition request failed');
+    document.querySelector('#itemName').value = result.name || '';
+    document.querySelector('#itemCategory').value = result.category || 'top';
+    document.querySelector('#itemColor').value = result.color || 'ivory';
+    document.querySelector('#itemFit').value = result.fit || 'regular';
+    document.querySelector('#itemPattern').value = result.pattern || 'solid';
+    const confidence = Math.round(Number(result.confidence || 0) * 100);
+    status.textContent = `Suggested ${result.category} · ${result.color} · ${confidence}% confidence. Review before saving${result.notes ? ` — ${result.notes}` : '.'}`;
+    showToast('AI suggestions filled in — review before adding');
+  } catch (error) {
+    status.textContent = error.message || 'Recognition is unavailable. You can still tag the item manually.';
+    showToast('DeepSeek recognition could not complete');
+  } finally {
+    button.disabled = !state.uploadedImage;
+    button.innerHTML = 'Recognise with DeepSeek <span>✦</span>';
+  }
 }
 
 async function saveCurrentOutfit() {
@@ -415,6 +472,7 @@ function setupEvents() {
   document.querySelector('#itemForm').addEventListener('submit', addItem);
   document.querySelector('#useSampleButton').addEventListener('click', useSamplePlaceholder);
   document.querySelector('#imageInput').addEventListener('change', readImage);
+  document.querySelector('#analyzeImageButton').addEventListener('click', analyzeClothing);
   document.querySelector('#searchInput').addEventListener('input', (event) => { state.search = event.target.value; renderGrid(); });
   document.querySelectorAll('.category-tab').forEach((button) => button.addEventListener('click', () => { state.activeCategory = button.dataset.category; document.querySelectorAll('.category-tab').forEach((tab) => tab.classList.toggle('active', tab === button)); renderGrid(); }));
   document.querySelector('#filterButton').addEventListener('click', () => { const drawer = document.querySelector('#filterDrawer'); drawer.hidden = !drawer.hidden; });

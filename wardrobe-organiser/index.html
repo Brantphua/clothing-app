@@ -195,15 +195,16 @@
         <button class="modal-close" id="closeModalButton" aria-label="Close">×</button>
         <div class="section-kicker">Add to the edit</div>
         <h2 id="modalTitle">Bring in a piece</h2>
-        <p class="modal-intro">Add a photo if you have one, or use a sample piece to explore the prototype.</p>
+        <p class="modal-intro">Add a photo and let DeepSeek suggest the details before you save it locally.</p>
         <div class="capture-zone">
           <div class="capture-preview" id="capturePreview"><span>✧</span><small>no image yet</small></div>
           <div class="capture-actions">
             <label class="secondary-button file-picker">Take a photo / upload<input id="imageInput" type="file" accept="image/*" capture="environment" /></label>
+            <button type="button" class="secondary-button" id="analyzeImageButton" disabled>Recognise with DeepSeek <span>✦</span></button>
             <button class="text-button" id="useSampleButton">Use a sample placeholder</button>
           </div>
         </div>
-        <div class="ai-placeholder"><span class="ai-sparkle">✦</span><div><strong>AI tagging is paused in this prototype.</strong><p>Choose the category manually below. Recognition can be added later without changing your wardrobe data.</p></div></div>
+        <div class="ai-placeholder"><span class="ai-sparkle">✦</span><div><strong>DeepSeek V4.1 Flash recognition</strong><p id="aiStatus">Add an image, then review the suggested details before saving.</p></div></div>
         <form id="itemForm">
           <div class="form-grid">
             <label class="form-field full-field">Piece name<input id="itemName" type="text" placeholder="e.g. Linen weekend shirt" required /></label>
