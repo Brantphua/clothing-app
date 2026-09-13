@@ -2,19 +2,43 @@ const DB_NAME = 'cloth-and-form-local';
 const DB_VERSION = 1;
 const ITEM_STORE = 'items';
 const SETTINGS_STORE = 'settings';
+const MANNEQUIN_FACE_COLORS = {
+  skin: '#b89c85',
+  feature: '#3f433b',
+  brow: '#747467',
+  nose: '#9f806e',
+  lips: '#854f50',
+  blush: '#d28f86',
+  hair: '#52564c'
+};
 
 const COLOR_META = {
+  white: { label: 'White', hex: '#fbfaf6', hue: 48, family: 'neutral', ink: '#4b4a43' },
   ivory: { label: 'Ivory', hex: '#e8dfcf', hue: 42, family: 'neutral', ink: '#5d574e' },
+  beige: { label: 'Beige', hex: '#d6c2a6', hue: 34, family: 'neutral', ink: '#57483b' },
+  gray: { label: 'Gray', hex: '#92979a', hue: 205, family: 'neutral', ink: '#fff' },
+  charcoal: { label: 'Charcoal', hex: '#4a4d4d', hue: 190, family: 'neutral', ink: '#fff' },
   navy: { label: 'Navy', hex: '#283a55', hue: 216, family: 'blue', ink: '#fff' },
+  sky: { label: 'Sky blue', hex: '#8cbdd7', hue: 199, family: 'blue', ink: '#203b4a' },
+  cobalt: { label: 'Cobalt', hex: '#4165bd', hue: 224, family: 'blue', ink: '#fff' },
+  teal: { label: 'Teal', hex: '#2f7d7b', hue: 178, family: 'blue', ink: '#fff' },
   sage: { label: 'Sage', hex: '#91a28d', hue: 108, family: 'green', ink: '#243126' },
+  olive: { label: 'Olive', hex: '#7c7d3d', hue: 61, family: 'green', ink: '#fff' },
+  mint: { label: 'Mint', hex: '#a7d4c0', hue: 155, family: 'green', ink: '#244238' },
   terracotta: { label: 'Terracotta', hex: '#b9654e', hue: 11, family: 'red', ink: '#fff' },
+  coral: { label: 'Coral', hex: '#e78168', hue: 12, family: 'red', ink: '#fff' },
+  burgundy: { label: 'Burgundy', hex: '#7a303f', hue: 348, family: 'red', ink: '#fff' },
+  plum: { label: 'Plum', hex: '#70405f', hue: 319, family: 'purple', ink: '#fff' },
   ochre: { label: 'Ochre', hex: '#c4943c', hue: 40, family: 'yellow', ink: '#332516' },
+  mustard: { label: 'Mustard', hex: '#c9a13b', hue: 44, family: 'yellow', ink: '#332516' },
+  orange: { label: 'Orange', hex: '#d8752d', hue: 27, family: 'yellow', ink: '#fff' },
+  brown: { label: 'Brown', hex: '#795239', hue: 25, family: 'brown', ink: '#fff' },
   black: { label: 'Black', hex: '#2a2b29', hue: 0, family: 'neutral', ink: '#fff' },
   denim: { label: 'Denim', hex: '#6f88a2', hue: 211, family: 'blue', ink: '#fff' },
   rose: { label: 'Rose', hex: '#c98e8b', hue: 2, family: 'red', ink: '#fff' }
 };
 
-const CATEGORY_LABELS = { top: 'Top', bottom: 'Bottom', dress: 'Dress', outerwear: 'Outerwear' };
+const CATEGORY_LABELS = { top: 'Top', bottom: 'Bottom', dress: 'Dress', outerwear: 'Outerwear', underwear: 'Underwear' };
 const FIT_PROFILES = {
   hourglass: { name: 'Hourglass', short: 'Hourglass', description: 'Shoulders and hips feel balanced, with a visible waist.', tip: 'Selected for balanced proportions and gentle waist definition.' },
   pear: { name: 'Pear', short: 'Pear', description: 'Hips feel fuller than the shoulders.', tip: 'Selected for easy balance through the shoulder and hip line.' },
@@ -23,6 +47,13 @@ const FIT_PROFILES = {
   apple: { name: 'Apple', short: 'Apple', description: 'You carry more shape through the middle.', tip: 'Selected for soft structure, movement, and comfortable drape.' }
 };
 const LEGACY_PROFILE_MAP = { balanced: 'rectangle', defined: 'hourglass', curve: 'pear', longline: 'rectangle' };
+const GENDER_OPTIONS = {
+  prefer_not_to_say: 'Prefer not to say',
+  woman: 'Woman',
+  man: 'Man',
+  non_binary: 'Non-binary',
+  another_identity: 'Another identity'
+};
 
 const SAMPLE_ITEMS = [
   { id: 'sample-1', name: 'Linen weekend shirt', category: 'top', color: 'ivory', fit: 'relaxed', pattern: 'solid', sample: true, createdAt: 1 },
@@ -56,6 +87,8 @@ const PHOTO_SAMPLE_ITEMS = [
 const state = {
   items: [],
   profile: 'hourglass',
+  gender: 'prefer_not_to_say',
+  profilePhoto: '',
   activeView: 'wardrobe',
   activeCategory: 'all',
   search: '',
@@ -66,6 +99,7 @@ const state = {
   savedIds: new Set(),
   uploadedImage: null,
   uploadedFilename: '',
+  editingItemId: null,
   sampleColorIndex: 0
 };
 
@@ -122,10 +156,14 @@ async function loadState() {
   state.items = await dbGetAll(ITEM_STORE);
   const settings = await dbGetAll(SETTINGS_STORE);
   const profileSetting = settings.find((setting) => setting.key === 'profile');
+  const genderSetting = settings.find((setting) => setting.key === 'gender');
+  const profilePhotoSetting = settings.find((setting) => setting.key === 'profilePhoto');
   const savedSetting = settings.find((setting) => setting.key === 'savedIds');
   const storedProfile = profileSetting?.value;
   if (storedProfile && FIT_PROFILES[storedProfile]) state.profile = storedProfile;
   else if (storedProfile && LEGACY_PROFILE_MAP[storedProfile]) state.profile = LEGACY_PROFILE_MAP[storedProfile];
+  if (genderSetting?.value && GENDER_OPTIONS[genderSetting.value]) state.gender = genderSetting.value;
+  if (typeof profilePhotoSetting?.value === 'string' && profilePhotoSetting.value.startsWith('data:image/')) state.profilePhoto = profilePhotoSetting.value;
   if (savedSetting?.value) state.savedIds = new Set(savedSetting.value);
   state.selectedAnchor = state.items[0]?.id || null;
   chooseOutfit();
@@ -149,7 +187,22 @@ function garmentSvg(item, small = false) {
   if (item.category === 'bottom') shape = `<path d="M29 10 Q50 16 71 10 L82 96 L56 96 L50 48 L44 96 L18 96 Z" fill="${meta.hex}" stroke="${stroke}" stroke-width="1.5"/><path d="M32 28 H72" stroke="rgba(255,255,255,.3)" stroke-width="2"/>`;
   if (item.category === 'dress') shape = `<path d="M39 10 Q50 18 61 10 L63 37 L88 96 H12 L37 37 Z" fill="${meta.hex}" stroke="${stroke}" stroke-width="1.5"/><path d="M38 11 Q50 28 62 11" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="2"/>`;
   if (item.category === 'outerwear') shape = `<path d="M29 15 L45 10 L50 24 L55 10 L72 15 L87 94 L56 94 L50 50 L44 94 L13 94 Z" fill="${meta.hex}" stroke="${stroke}" stroke-width="1.5"/><path d="M50 24 V92 M28 33 L44 38 M72 33 L56 38" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="2"/>`;
+  if (item.category === 'underwear') shape = `<path d="M25 20 Q50 27 75 20 L70 57 Q64 81 50 88 Q36 81 30 57 Z" fill="${meta.hex}" stroke="${stroke}" stroke-width="1.5"/><path d="M25 21 Q50 29 75 21 M34 51 Q50 59 66 51" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/>`;
   return `<svg class="clothing-svg" viewBox="0 0 100 105" aria-hidden="true">${shape}${pattern}</svg>`;
+}
+
+async function removeWardrobeItem(id) {
+  const item = state.items.find((candidate) => candidate.id === id);
+  if (!item || !window.confirm(`Delete “${item.name}” from your wardrobe?`)) return false;
+  const pairingHadOuterwear = state.outfit.some((outfitItem) => outfitItem.id === id && outfitItem.category === 'outerwear');
+  await dbDelete(ITEM_STORE, id);
+  state.items = state.items.filter((candidate) => candidate.id !== id);
+  state.savedIds.delete(id);
+  await dbPut(SETTINGS_STORE, { key: 'savedIds', value: [...state.savedIds] });
+  if (state.selectedAnchor === id) state.selectedAnchor = state.items[0]?.id || null;
+  chooseOutfit(0, { skipOuterwear: pairingHadOuterwear });
+  showToast(`${item.name} removed from your wardrobe`);
+  return true;
 }
 
 function renderCard(item) {
@@ -159,7 +212,7 @@ function renderCard(item) {
   const image = imageSource ? `<img src="${escapeHtml(imageSource)}" alt="${escapeHtml(item.name)}" />` : '';
   const sampleLabel = item.sampleType === 'photo' ? 'photo sample' : item.sample ? 'sample' : '';
   return `<article class="clothing-card ${state.selectedAnchor === item.id ? 'selected' : ''}" data-id="${item.id}" tabindex="0" aria-label="${escapeHtml(item.name)}">
-    <div class="clothing-thumb" style="background:linear-gradient(145deg, ${meta.hex}55, #f1eee4)">${garmentSvg(item)}${image}${sampleLabel ? `<span class="sample-label">${sampleLabel}</span>` : ''}<button class="card-heart ${saved ? 'saved' : ''}" data-heart="${item.id}" aria-label="${saved ? 'Remove from saved' : 'Save'}">${saved ? '♥' : '♡'}</button></div>
+    <div class="clothing-thumb" style="background:linear-gradient(145deg, ${meta.hex}55, #f1eee4)">${garmentSvg(item)}${image}${sampleLabel ? `<span class="sample-label">${sampleLabel}</span>` : ''}<div class="card-actions"><button class="card-heart ${saved ? 'saved' : ''}" data-heart="${item.id}" aria-label="${saved ? 'Remove from saved' : 'Save'}" title="${saved ? 'Remove from saved' : 'Save'}">${saved ? '♥' : '♡'}</button><button class="card-edit" data-edit="${item.id}" aria-label="Edit ${escapeHtml(item.name)}" title="Edit item">✎</button><button class="card-delete" data-delete="${item.id}" aria-label="Delete ${escapeHtml(item.name)}" title="Delete item">×</button></div></div>
     <div class="card-meta"><div class="card-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="card-sub">${itemColorDot(item)}${meta.label} · ${categoryLabel(item.category)}</div></div>
   </article>`;
 }
@@ -184,12 +237,12 @@ function renderGrid() {
   document.querySelector('#pieceCount').textContent = state.items.length;
   document.querySelector('#navCount').textContent = state.items.length;
   document.querySelector('#allCount').textContent = state.items.length;
-  ['top', 'bottom', 'dress', 'outerwear'].forEach((category) => {
+  ['top', 'bottom', 'dress', 'outerwear', 'underwear'].forEach((category) => {
     document.querySelector(`#${category}Count`).textContent = state.items.filter((item) => item.category === category).length;
   });
   document.querySelectorAll('.clothing-card').forEach((card) => {
     card.addEventListener('click', (event) => {
-      if (event.target.closest('[data-heart]')) return;
+      if (event.target.closest('[data-heart], [data-edit], [data-delete]')) return;
       state.selectedAnchor = card.dataset.id;
       chooseOutfit();
       renderGrid();
@@ -203,6 +256,15 @@ function renderGrid() {
     await dbPut(SETTINGS_STORE, { key: 'savedIds', value: [...state.savedIds] });
     renderGrid();
     showToast(state.savedIds.has(id) ? 'Saved to your edit' : 'Removed from saved');
+  }));
+  document.querySelectorAll('[data-edit]').forEach((button) => button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const item = state.items.find((candidate) => candidate.id === button.dataset.edit);
+    if (item) openModal(item);
+  }));
+  document.querySelectorAll('[data-delete]').forEach((button) => button.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    if (await removeWardrobeItem(button.dataset.delete)) renderGrid();
   }));
 }
 
@@ -233,7 +295,7 @@ function compatibilityNote(score, items) {
   return 'A fresh contrast worth trying';
 }
 
-function chooseOutfit(offset = 0) {
+function chooseOutfit(offset = 0, options = {}) {
   const items = state.items;
   if (!items.length) { state.outfit = []; renderPairing(); return; }
   const anchor = items.find((item) => item.id === state.selectedAnchor) || items[0];
@@ -249,37 +311,38 @@ function chooseOutfit(offset = 0) {
   let outfit = [];
   if (anchor.category === 'dress') {
     outfit = [anchor];
-    const layer = findCategory('outerwear', [anchor.id]);
+    const layer = options.skipOuterwear ? null : findCategory('outerwear', [anchor.id]);
     if (layer) outfit.push(layer);
   } else {
     const top = anchor.category === 'top' ? anchor : findCategory('top', [anchor.id]);
     const bottom = anchor.category === 'bottom' ? anchor : findCategory('bottom', [anchor.id]);
     if (top) outfit.push(top);
     if (bottom) outfit.push(bottom);
-    const outerwear = findCategory('outerwear', outfit.map((item) => item.id));
+    const outerwear = options.skipOuterwear ? null : findCategory('outerwear', outfit.map((item) => item.id));
     if (outerwear && outfit.length >= 2 && state.items.length > 4) outfit.push(outerwear);
   }
   state.outfit = outfit;
   renderPairing();
 }
 
-function mannequinSvg(outfit) {
+function mannequinSvg(outfit, options = {}) {
   const top = outfit.find((item) => item.category === 'top');
   const bottom = outfit.find((item) => item.category === 'bottom');
   const dress = outfit.find((item) => item.category === 'dress');
   const outerwear = outfit.find((item) => item.category === 'outerwear');
   const fill = (item, fallback) => colorMeta(item?.color || fallback).hex;
   const topFill = fill(top, 'ivory'); const bottomFill = fill(bottom, 'denim'); const dressFill = fill(dress, 'terracotta'); const outerFill = fill(outerwear, 'black');
+  const face = options.showFace ? `<g fill="${MANNEQUIN_FACE_COLORS.feature}"><ellipse cx="117" cy="80" rx="2.3" ry="2.8"/><ellipse cx="143" cy="80" rx="2.3" ry="2.8"/></g><path d="M108 70 Q117 65 125 70 M135 70 Q143 65 152 70" fill="none" stroke="${MANNEQUIN_FACE_COLORS.brow}" stroke-width="2" stroke-linecap="round"/><path d="M130 82 Q126 92 130 95 Q134 92 130 82" fill="none" stroke="${MANNEQUIN_FACE_COLORS.nose}" stroke-width="1.7" stroke-linecap="round"/><path d="M120 103 Q130 110 140 103" fill="none" stroke="${MANNEQUIN_FACE_COLORS.lips}" stroke-width="2" stroke-linecap="round"/><circle cx="108" cy="94" r="4" fill="${MANNEQUIN_FACE_COLORS.blush}" opacity=".22"/><circle cx="152" cy="94" r="4" fill="${MANNEQUIN_FACE_COLORS.blush}" opacity=".22"/>` : '';
   return `<svg viewBox="0 0 260 520" role="img" aria-label="Illustrated mannequin wearing your selected outfit">
-    <defs><linearGradient id="skin" x1="0" x2="1"><stop offset="0" stop-color="#ceb69f"/><stop offset="1" stop-color="#b89c85"/></linearGradient><linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".22"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".12"/></linearGradient></defs>
+    <defs><linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".22"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".12"/></linearGradient></defs>
     <ellipse cx="130" cy="491" rx="69" ry="8" fill="rgba(56,69,54,.14)"/>
     <path d="M102 465 L110 375 L150 375 L159 465" fill="#76806f" opacity=".2"/>
     <path d="M117 382 L115 468 M143 382 L146 468" stroke="#9c9d8d" stroke-width="13" stroke-linecap="round"/>
     <path d="M111 464 L100 478 L118 480 L129 468 M147 464 L162 478 L143 480 L130 468" fill="#777b70"/>
-    <ellipse cx="130" cy="78" rx="34" ry="41" fill="url(#skin)"/><path d="M99 74 Q103 34 131 35 Q162 34 164 74 Q148 55 99 74" fill="#52564c"/><path d="M121 114 H139 V139 H121Z" fill="url(#skin)"/>
+    <ellipse cx="130" cy="78" rx="34" ry="41" fill="${MANNEQUIN_FACE_COLORS.skin}"/><path d="M99 74 Q103 34 131 35 Q162 34 164 74 Q148 55 99 74" fill="${MANNEQUIN_FACE_COLORS.hair}"/>${face}<path d="M121 114 H139 V139 H121Z" fill="${MANNEQUIN_FACE_COLORS.skin}"/>
     ${dress ? `<path d="M111 135 L149 135 L156 245 L194 384 Q130 405 66 384 L104 245 Z" fill="${dressFill}" stroke="#30352d" stroke-opacity=".14"/><path d="M111 136 Q130 160 149 136" fill="none" stroke="rgba(255,255,255,.36)" stroke-width="3"/><path d="M83 308 Q130 323 177 308" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="3"/>` : `<path d="M105 135 L122 130 L130 149 L138 130 L155 135 L174 246 L151 252 L147 194 L148 274 L112 274 L112 194 L109 252 L86 246 Z" fill="${topFill}" stroke="#30352d" stroke-opacity=".14"/><path d="M112 274 L148 274 L167 381 L131 384 L126 310 L119 384 L83 381 Z" fill="${bottomFill}" stroke="#30352d" stroke-opacity=".14"/><path d="M114 145 Q130 172 146 145" fill="none" stroke="rgba(255,255,255,.38)" stroke-width="3"/>`}
     ${outerwear ? `<path d="M98 134 L114 128 L130 159 L146 128 L162 134 L184 265 L155 270 L148 194 L149 293 L111 293 L112 194 L105 270 L76 265 Z" fill="${outerFill}" fill-opacity=".92" stroke="#30352d" stroke-opacity=".16"/><path d="M130 160 V291 M101 165 L112 177 M159 165 L148 177" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none"/>` : ''}
-    <path d="M105 140 L88 246 M155 140 L172 246" stroke="#b99f88" stroke-width="12" stroke-linecap="round" opacity=".94"/><circle cx="87" cy="248" r="7" fill="url(#skin)"/><circle cx="173" cy="248" r="7" fill="url(#skin)"/>
+    <path d="M105 140 L88 246 M155 140 L172 246" stroke="${MANNEQUIN_FACE_COLORS.skin}" stroke-width="12" stroke-linecap="round" opacity=".94"/><circle cx="87" cy="248" r="7" fill="${MANNEQUIN_FACE_COLORS.skin}"/><circle cx="173" cy="248" r="7" fill="${MANNEQUIN_FACE_COLORS.skin}"/>
     <path d="M130 156 L130 268" stroke="url(#cloth)" stroke-width="7" opacity=".28"/>
   </svg>`;
 }
@@ -287,9 +350,14 @@ function mannequinSvg(outfit) {
 function renderPairing() {
   const stage = document.querySelector('#mannequinStage');
   const studioStage = document.querySelector('#studioMannequinStage');
-  stage.innerHTML = state.outfit.length ? mannequinSvg(state.outfit) : '<div class="empty-icon">＋</div>';
-  studioStage.innerHTML = state.outfit.length ? mannequinSvg(state.outfit) : '<div class="empty-icon">＋</div>';
-  document.querySelector('#pairingItems').innerHTML = state.outfit.map((item) => `<span class="item-chip">${itemColorDot(item)}${escapeHtml(item.name)}</span>`).join('');
+  const mannequin = state.outfit.length ? mannequinSvg(state.outfit, { showFace: true }) : '<div class="empty-icon">＋</div>';
+  stage.innerHTML = mannequin;
+  studioStage.innerHTML = mannequin;
+  document.querySelector('#pairingItems').innerHTML = state.outfit.map((item) => `<span class="item-chip">${itemColorDot(item)}<span>${escapeHtml(item.name)}</span><button class="pairing-delete" data-pairing-delete="${item.id}" aria-label="Delete ${escapeHtml(item.name)} from your wardrobe" title="Delete from wardrobe">×</button></span>`).join('');
+  document.querySelectorAll('[data-pairing-delete]').forEach((button) => button.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    if (await removeWardrobeItem(button.dataset.pairingDelete)) renderGrid();
+  }));
   const score = colorScore(state.outfit);
   document.querySelector('#compatibilityScore').innerHTML = `${score}<span>%</span>`;
   document.querySelector('#compatibilityNote').textContent = compatibilityNote(score, state.outfit);
@@ -324,6 +392,8 @@ function profileFigure(profile) {
 
 function renderProfiles() {
   document.querySelector('#profileOptions').innerHTML = Object.entries(FIT_PROFILES).map(([key, profile]) => `<button class="profile-option ${state.profile === key ? 'active' : ''}" data-profile="${key}"><div class="profile-figure">${profileFigure(key)}</div><h3>${profile.name}</h3><p>${profile.description}</p></button>`).join('');
+  document.querySelector('#genderSelect').value = state.gender;
+  renderProfilePhoto();
   document.querySelectorAll('[data-profile]').forEach((button) => button.addEventListener('click', () => {
     state.profile = button.dataset.profile;
     renderProfiles();
@@ -346,30 +416,135 @@ function showToast(message) {
   showToast.timeout = setTimeout(() => toast.classList.remove('show'), 2400);
 }
 
-function openModal() {
+function renderProfilePhoto() {
+  const preview = document.querySelector('#profilePhotoPreview');
+  const removeButton = document.querySelector('#removeProfilePhotoButton');
+  if (!preview || !removeButton) return;
+  if (state.profilePhoto) {
+    preview.className = 'profile-photo-preview has-photo';
+    preview.style.backgroundImage = `url("${state.profilePhoto}")`;
+    preview.innerHTML = '';
+    removeButton.hidden = false;
+  } else {
+    preview.className = 'profile-photo-preview';
+    preview.style.backgroundImage = '';
+    preview.innerHTML = '<span>◎</span><small>No photo yet</small>';
+    removeButton.hidden = true;
+  }
+}
+
+function optimizeProfilePhoto(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxDimension = 960;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.86));
+    };
+    image.onerror = () => reject(new Error('That photo could not be read'));
+    image.src = dataUrl;
+  });
+}
+
+async function readProfilePhoto(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return showToast('Please choose an image file');
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      state.profilePhoto = await optimizeProfilePhoto(reader.result);
+      await dbPut(SETTINGS_STORE, { key: 'profilePhoto', value: state.profilePhoto });
+      renderProfilePhoto();
+      renderPairing();
+      showToast('Profile photo saved locally');
+    } catch (error) {
+      showToast(error.message || 'That photo could not be saved');
+    }
+  };
+  reader.onerror = () => showToast('That photo could not be read');
+  reader.readAsDataURL(file);
+}
+
+async function removeProfilePhoto() {
+  if (!state.profilePhoto || !window.confirm('Remove your profile photo?')) return;
+  state.profilePhoto = '';
+  await dbDelete(SETTINGS_STORE, 'profilePhoto');
+  renderProfilePhoto();
+  renderPairing();
+  showToast('Profile photo removed');
+}
+
+function openModal(item = null) {
+  state.editingItemId = item?.id || null;
+  state.uploadedImage = item?.imageData || null;
+  state.uploadedFilename = item?.name || '';
   document.querySelector('#itemModal').hidden = false;
-  document.querySelector('#aiStatus').textContent = 'Add an image, then review the suggested details before saving.';
+  document.querySelector('#modalTitle').textContent = item ? 'Edit this piece' : 'Bring in a piece';
+  document.querySelector('#modalIntro').textContent = item ? 'Update the details below and save your changes locally.' : 'Add a photo and let DeepSeek suggest the details before you save it locally.';
+  document.querySelector('#itemName').value = item?.name || '';
+  document.querySelector('#itemCategory').value = item?.category || 'top';
+  document.querySelector('#itemColor').value = item?.color || 'ivory';
+  document.querySelector('#itemFit').value = item?.fit || 'regular';
+  document.querySelector('#itemPattern').value = item?.pattern || 'solid';
+  const imageSource = item?.imageData || item?.imageSrc || '';
+  const preview = document.querySelector('#capturePreview');
+  preview.className = imageSource ? 'capture-preview has-image' : 'capture-preview';
+  preview.style.backgroundImage = imageSource ? `url("${imageSource}")` : '';
+  document.querySelector('#aiStatus').textContent = item ? 'Review the details and save your changes.' : 'Add an image, then review the suggested details before saving.';
   document.querySelector('#analyzeImageButton').disabled = !state.uploadedImage;
+  document.querySelector('#itemSubmitButton').innerHTML = item ? 'Save changes <span>→</span>' : 'Add piece <span>→</span>';
   document.querySelector('#itemName').focus();
 }
 function closeModal() {
   document.querySelector('#itemModal').hidden = true;
+  state.editingItemId = null;
   state.uploadedImage = null;
   state.uploadedFilename = '';
   document.querySelector('#capturePreview').className = 'capture-preview';
   document.querySelector('#capturePreview').style.backgroundImage = '';
   document.querySelector('#analyzeImageButton').disabled = true;
   document.querySelector('#analyzeImageButton').innerHTML = 'Recognise with DeepSeek <span>✦</span>';
+  document.querySelector('#modalTitle').textContent = 'Bring in a piece';
+  document.querySelector('#modalIntro').textContent = 'Add a photo and let DeepSeek suggest the details before you save it locally.';
+  document.querySelector('#itemSubmitButton').innerHTML = 'Add piece <span>→</span>';
+  document.querySelector('#itemForm').reset();
 }
 
 function makeId() { return `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 
 async function addItem(event) {
   event.preventDefault();
-  const item = { id: makeId(), name: document.querySelector('#itemName').value.trim(), category: document.querySelector('#itemCategory').value, color: document.querySelector('#itemColor').value, fit: document.querySelector('#itemFit').value, pattern: document.querySelector('#itemPattern').value, createdAt: Date.now(), imageData: state.uploadedImage || null, sample: !state.uploadedImage };
-  if (!item.name) return;
+  const name = document.querySelector('#itemName').value.trim();
+  if (!name) return;
+  if (state.editingItemId) {
+    const existing = state.items.find((candidate) => candidate.id === state.editingItemId);
+    if (!existing) return closeModal();
+    const item = { ...existing, name, category: document.querySelector('#itemCategory').value, color: document.querySelector('#itemColor').value, fit: document.querySelector('#itemFit').value, pattern: document.querySelector('#itemPattern').value };
+    if (state.uploadedImage) {
+      item.imageData = state.uploadedImage;
+      item.sample = false;
+      delete item.imageSrc;
+      delete item.sampleType;
+      delete item.source;
+    }
+    await dbPut(ITEM_STORE, item);
+    state.items = state.items.map((candidate) => candidate.id === item.id ? item : candidate);
+    state.selectedAnchor = item.id;
+    chooseOutfit();
+    renderGrid();
+    closeModal();
+    showToast(`${item.name} updated`);
+    return;
+  }
+  const item = { id: makeId(), name, category: document.querySelector('#itemCategory').value, color: document.querySelector('#itemColor').value, fit: document.querySelector('#itemFit').value, pattern: document.querySelector('#itemPattern').value, createdAt: Date.now(), imageData: state.uploadedImage || null, sample: !state.uploadedImage };
   await dbPut(ITEM_STORE, item);
-  state.items.push(item); state.selectedAnchor = item.id; chooseOutfit(); renderGrid(); closeModal(); document.querySelector('#itemForm').reset(); showToast(`${item.name} added to your wardrobe`);
+  state.items.push(item); state.selectedAnchor = item.id; chooseOutfit(); renderGrid(); closeModal(); showToast(`${item.name} added to your wardrobe`);
 }
 
 function useSamplePlaceholder() {
@@ -443,7 +618,7 @@ async function saveCurrentOutfit() {
 }
 
 function exportWardrobe() {
-  const payload = { app: 'cloth-and-form', version: 1, exportedAt: new Date().toISOString(), profile: state.profile, items: state.items, savedIds: [...state.savedIds] };
+  const payload = { app: 'cloth-and-form', version: 1, exportedAt: new Date().toISOString(), profile: state.profile, gender: state.gender, profilePhoto: state.profilePhoto, items: state.items, savedIds: [...state.savedIds] };
   const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })); link.download = `cloth-and-form-wardrobe-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href); showToast('Wardrobe backup exported');
 }
 
@@ -455,10 +630,14 @@ async function importWardrobe(event) {
     for (const item of payload.items) await dbPut(ITEM_STORE, item);
     state.items = await dbGetAll(ITEM_STORE);
     if (payload.profile && FIT_PROFILES[payload.profile]) state.profile = payload.profile;
+    if (payload.gender && GENDER_OPTIONS[payload.gender]) state.gender = payload.gender;
+    if (Object.prototype.hasOwnProperty.call(payload, 'profilePhoto')) state.profilePhoto = typeof payload.profilePhoto === 'string' && payload.profilePhoto.startsWith('data:image/') ? payload.profilePhoto : '';
     if (Array.isArray(payload.savedIds)) state.savedIds = new Set(payload.savedIds);
     await dbPut(SETTINGS_STORE, { key: 'profile', value: state.profile });
+    await dbPut(SETTINGS_STORE, { key: 'gender', value: state.gender });
+    await dbPut(SETTINGS_STORE, { key: 'profilePhoto', value: state.profilePhoto });
     await dbPut(SETTINGS_STORE, { key: 'savedIds', value: [...state.savedIds] });
-    state.selectedAnchor = state.items[0]?.id || null; chooseOutfit(); renderGrid(); showToast('Wardrobe backup imported');
+    state.selectedAnchor = state.items[0]?.id || null; chooseOutfit(); renderGrid(); renderProfiles(); showToast('Wardrobe backup imported');
   } catch (error) { showToast('That file could not be imported'); }
   event.target.value = '';
 }
@@ -483,7 +662,15 @@ function setupEvents() {
   document.querySelector('#studioShuffleButton').addEventListener('click', () => { state.selectedAnchor = state.items[Math.floor(Math.random() * state.items.length)]?.id; chooseOutfit(Math.floor(Math.random() * 3)); renderGrid(); showToast('A new pairing is ready'); });
   document.querySelector('#saveOutfitButton').addEventListener('click', saveCurrentOutfit);
   document.querySelector('#profileShortcut').addEventListener('click', () => showView('profile'));
-  document.querySelector('#saveProfileButton').addEventListener('click', async () => { await dbPut(SETTINGS_STORE, { key: 'profile', value: state.profile }); showToast('Fit profile saved locally'); });
+  document.querySelector('#genderSelect').addEventListener('change', (event) => { state.gender = event.target.value; });
+  document.querySelector('#profilePhotoInput').addEventListener('change', readProfilePhoto);
+  document.querySelector('#removeProfilePhotoButton').addEventListener('click', removeProfilePhoto);
+  document.querySelector('#saveProfileButton').addEventListener('click', async () => {
+    await dbPut(SETTINGS_STORE, { key: 'profile', value: state.profile });
+    await dbPut(SETTINGS_STORE, { key: 'gender', value: state.gender });
+    await dbPut(SETTINGS_STORE, { key: 'profilePhoto', value: state.profilePhoto });
+    showToast('Profile saved locally');
+  });
   document.querySelector('#helpButton').addEventListener('click', () => showToast('Prototype mode: manual tagging, local storage, and color pairing'));
   document.querySelector('#exportButton').addEventListener('click', exportWardrobe);
   document.querySelector('#importInput').addEventListener('change', importWardrobe);

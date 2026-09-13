@@ -131,8 +131,13 @@ button { cursor: pointer; }
 .clothing-thumb::before { content: ''; position: absolute; inset: 0; opacity: .15; background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 9px 9px; }
 .clothing-thumb img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 2; }
 .clothing-svg { position: relative; width: 76%; height: 78%; z-index: 1; filter: drop-shadow(0 8px 7px rgba(44, 50, 42, .15)); }
-.card-heart { position: absolute; right: 6px; top: 6px; z-index: 3; border: 0; width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,.74); color: var(--muted); font-size: 13px; }
+.card-actions { position: absolute; right: 6px; top: 6px; z-index: 3; display: flex; gap: 4px; }
+.card-heart, .card-edit, .card-delete { border: 0; width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,.78); font-size: 13px; line-height: 1; }
+.card-heart { color: var(--muted); }
 .card-heart.saved { color: var(--rust); }
+.card-edit { color: var(--sage-deep); font-size: 14px; }
+.card-delete { color: var(--rust-deep); font-size: 17px; }
+.card-heart:hover, .card-edit:hover, .card-delete:hover { background: rgba(255,255,255,.98); }
 .card-meta { padding: 9px 2px 2px; }
 .card-name { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-sub { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--muted); font-size: 10px; }
@@ -151,8 +156,10 @@ button { cursor: pointer; }
 .mannequin-stage svg { width: 202px; max-height: 305px; }
 .pairing-details { padding: 0 2px; }
 .pairing-items { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 17px; }
-.item-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.57); border: 1px solid rgba(205,210,199,.72); border-radius: 100px; padding: 6px 8px; color: var(--ink); font-size: 9px; }
+.item-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.57); border: 1px solid rgba(205,210,199,.72); border-radius: 100px; padding: 5px 6px 5px 8px; color: var(--ink); font-size: 9px; }
 .item-chip .color-dot { width: 6px; height: 6px; }
+.pairing-delete { border: 0; width: 17px; height: 17px; padding: 0; border-radius: 50%; background: transparent; color: var(--rust-deep); font-size: 14px; line-height: 1; }
+.pairing-delete:hover { background: rgba(196,111,81,.12); }
 .compatibility-row { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #d7dccf; padding-top: 13px; }
 .compatibility-label { font-size: 10px; font-weight: 700; }
 .compatibility-note { color: var(--muted); font-size: 9px; margin-top: 4px; }
@@ -185,7 +192,22 @@ button { cursor: pointer; }
 .profile-figure svg { height: 108px; width: 80px; }
 .profile-option h3 { font: 500 16px 'Playfair Display', serif; margin: 0 0 4px; }
 .profile-option p { font-size: 10px; line-height: 1.45; color: var(--muted); margin: 0; }
+.profile-preferences { border-top: 1px solid var(--line); margin-top: 27px; padding-top: 21px; display: grid; gap: 12px; max-width: 320px; }
+.profile-field { display: grid; gap: 7px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font: 9px 'DM Mono', monospace; }
+.profile-field > span { color: #a1a199; text-transform: none; letter-spacing: 0; font-size: 9px; margin-left: 5px; }
+.profile-field select { width: 100%; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); padding: 10px; outline: 0; font: 11px 'DM Sans', sans-serif; text-transform: none; letter-spacing: 0; }
+.profile-field select:focus { border-color: var(--sage-deep); box-shadow: 0 0 0 3px rgba(89,108,88,.1); }
+.profile-photo-setting { border-top: 1px solid var(--line); padding-top: 21px; display: grid; gap: 8px; }
+.profile-photo-setting > p { color: var(--muted); font-size: 10px; line-height: 1.45; margin: 0 0 3px; }
+.profile-photo-controls { display: flex; align-items: center; gap: 12px; }
+.profile-photo-preview { width: 78px; height: 94px; border: 1px dashed #b6bdb0; border-radius: 9px; background: #eef1e9; display: grid; place-items: center; align-content: center; color: var(--sage-deep); }
+.profile-photo-preview span { font-size: 24px; }
+.profile-photo-preview small { font: 8px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.profile-photo-preview.has-photo { background-size: cover; background-position: center; border-style: solid; }
+.profile-photo-preview.has-photo span, .profile-photo-preview.has-photo small { display: none; }
+.profile-photo-actions { display: grid; gap: 8px; justify-items: start; }
 .profile-save-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid var(--line); margin-top: 27px; padding-top: 17px; color: var(--muted); font-size: 10px; }
+
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(28, 32, 27, .42); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 20px; }
 .modal-backdrop[hidden] { display: none; }
@@ -248,6 +270,7 @@ button { cursor: pointer; }
   .studio-grid { grid-template-columns: 1fr; }
   .large-mannequin-stage { min-height: 430px; }
   .profile-options { grid-template-columns: 1fr 1fr; }
+  .profile-photo-controls { align-items: flex-start; }
   .profile-save-row { align-items: flex-start; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr; }
   .full-field { grid-column: auto; }

@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, createReadStream } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const PORT = Number(process.env.PORT || 5173);
@@ -8,7 +9,12 @@ const MODEL = 'deepseek-flash';
 const API_URL = 'https://api.deepseek.com/chat/completions';
 const MAX_BODY_BYTES = 14 * 1024 * 1024;
 const APP_ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)));
-const DEFAULT_SECRET_FILE = 'C:\\Users\\jared\\OneDrive\\Desktop\\secrets.toml.txt';
+const DEFAULT_SECRET_FILES = [
+  join(homedir(), 'Downloads', 'Secret'),
+  join(homedir(), 'Downloads', 'Secret.txt'),
+  join(homedir(), 'Downloads', 'Secret.rtf'),
+  'C:\\Users\\jared\\OneDrive\\Desktop\\secrets.toml.txt'
+];
 
 const COLOR_ALIASES = {
   ivory: ['ivory', 'white', 'cream', 'beige', 'off-white', 'off white', 'ecru'],
@@ -25,7 +31,8 @@ const CATEGORY_ALIASES = {
   top: ['top', 'shirt', 't-shirt', 'tee', 'blouse', 'sweater', 'knit', 'hoodie', 'jumper', 'cardigan'],
   bottom: ['bottom', 'trousers', 'pants', 'jeans', 'shorts', 'skirt', 'culottes'],
   dress: ['dress', 'jumpsuit', 'romper'],
-  outerwear: ['outerwear', 'jacket', 'coat', 'blazer', 'parka', 'trench', 'vest', 'gilet']
+  outerwear: ['outerwear', 'jacket', 'coat', 'blazer', 'parka', 'trench', 'vest', 'gilet'],
+  underwear: ['underwear', 'under garment', 'undergarment', 'bra', 'briefs', 'brief', 'boxers', 'boxer', 'panties', 'lingerie', 'underpants', 'under shirt', 'undershirt']
 };
 
 const FIT_ALIASES = {
@@ -46,21 +53,39 @@ function firstMatch(value, aliases, fallback) {
   return Object.entries(aliases).find(([, words]) => words.some((word) => text === word || text.includes(word)))?.[0] || fallback;
 }
 
+function stripRichText(text) {
+  return String(text || '')
+    .replace(/\\'([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+    .replace(/\\[a-z]+-?\d* ?/gi, '')
+    .replace(/[{}]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function parseSecretValue(text) {
+  const normalizedText = stripRichText(text);
   const preferredKeys = ['DEEPSEEK_API_KEY', 'deep_key', 'api_key', 'apiKey'];
   for (const key of preferredKeys) {
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = text.match(new RegExp(`^\\s*(?:[\\w.-]+\\.)?${escapedKey}\\s*=\\s*(?:"([^"]+)"|'([^']+)'|([^#\\s]+))`, 'mi'));
+    const match = normalizedText.match(new RegExp(`^\\s*(?:[\\w.-]+\\.)?${escapedKey}\\s*=\\s*(?:"([^"]+)"|'([^']+)'|([^#\\s]+))`, 'mi'));
     const value = match?.[1] || match?.[2] || match?.[3];
     if (value) return value.trim();
   }
+
+  const labeledMatch = normalizedText.match(/(?:deepseek|api|secret)\s*(?:key)?\s*[:=]?\s*["'“”‘’`]?\s*(sk-[A-Za-z0-9_-]{12,})/i);
+  if (labeledMatch?.[1]) return labeledMatch[1];
+
+  const keyLikeMatch = normalizedText.match(/\b(sk-[A-Za-z0-9_-]{12,})\b/);
+  if (keyLikeMatch?.[1]) return keyLikeMatch[1];
+
   return '';
 }
 
 function getApiKey() {
   if (process.env.DEEPSEEK_API_KEY?.trim()) return process.env.DEEPSEEK_API_KEY.trim();
-  const secretFile = process.env.WARDROBE_SECRET_FILE || DEFAULT_SECRET_FILE;
-  if (!existsSync(secretFile)) return '';
+  const configuredFile = process.env.WARDROBE_SECRET_FILE?.trim();
+  const secretFile = configuredFile || DEFAULT_SECRET_FILES.find((candidate) => existsSync(candidate));
+  if (!secretFile || !existsSync(secretFile)) return '';
   return parseSecretValue(readFileSync(secretFile, 'utf8'));
 }
 
@@ -137,7 +162,7 @@ async function analyzeClothing(request, response) {
         content: [
           {
             type: 'text',
-            text: 'Analyze this single clothing item. Return only valid JSON with exactly these keys: name, category, color, fit, pattern, confidence, notes. category must be one of top, bottom, dress, outerwear. color should be a simple dominant color. fit must be relaxed, regular, or tailored. pattern must be solid, stripe, floral, or check. confidence must be a number from 0 to 1. notes should be a short uncertainty note or empty string. Do not identify the person or infer sensitive personal traits.'
+            text: 'Analyze this single clothing item. Return only valid JSON with exactly these keys: name, category, color, fit, pattern, confidence, notes. category must be one of top, bottom, dress, outerwear, underwear. Use underwear for bras, briefs, boxers, panties, lingerie, undershirts, and other garments worn underneath the main outfit. color should be a simple dominant color. fit must be relaxed, regular, or tailored. pattern must be solid, stripe, floral, or check. confidence must be a number from 0 to 1. notes should be a short uncertainty note or empty string. Do not identify the person or infer sensitive personal traits.'
           },
           { type: 'image_url', image_url: { url: imageData, detail: 'low' } }
         ]

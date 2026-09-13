@@ -16,20 +16,20 @@ npm start
 
 Then open [http://localhost:5173](http://localhost:5173) in a modern browser.
 
-The server reads the DeepSeek key from `C:\Users\jared\OneDrive\Desktop\secrets.toml.txt` using its `deep_key` entry. To use a different location, set `WARDROBE_SECRET_FILE` before starting the server:
+The server reads the DeepSeek key from `~/Downloads/Secret`, `~/Downloads/Secret.txt`, or `~/Downloads/Secret.rtf`. TextEdit may add the `.rtf` extension automatically. It also accepts the `DEEPSEEK_API_KEY` environment variable or a custom file path. To use a different location, set `WARDROBE_SECRET_FILE` before starting the server:
 
 ```powershell
 $env:WARDROBE_SECRET_FILE = 'C:\path\to\secrets.toml.txt'
 npm start
 ```
 
-The key is read only by `server.mjs`; it is never sent to the browser. Do not commit the secret file or paste the key into project files.
+The key file can contain a `DEEPSEEK_API_KEY=...` or `deep_key=...` entry, or a line such as `My secret sk-...`. The key is read only by `server.mjs`; it is never sent to the browser. Do not commit the secret file or paste the key into project files.
 
 The app stores pieces and settings in IndexedDB for the `localhost:5173` browser origin. Use **Export wardrobe** before clearing browser data or moving to another browser.
 
 ## Prototype boundaries
 
-- Clothing categories: tops, bottoms, dresses, and outerwear.
+- Clothing categories: tops, bottoms, dresses, outerwear, and underwear. Underwear is kept in the wardrobe but excluded from Today’s pairing and Outfit Studio selections.
 - AI recognition: the add-piece panel sends the selected image to the local server, which calls DeepSeek's `deepseek-flash` model (the current V4.1 Flash model) and fills in editable name, category, color, fit, and pattern suggestions.
 - Image generation: intentionally not connected yet.
 - Image upload: stored locally and shown on the clothing card; the mannequin uses the selected item color and category as an illustrated preview.

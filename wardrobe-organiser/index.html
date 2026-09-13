@@ -92,6 +92,7 @@
                 <button class="category-tab" data-category="bottom">Bottoms <span id="bottomCount">0</span></button>
                 <button class="category-tab" data-category="dress">Dresses <span id="dressCount">0</span></button>
                 <button class="category-tab" data-category="outerwear">Outerwear <span id="outerwearCount">0</span></button>
+                <button class="category-tab" data-category="underwear">Underwear <span id="underwearCount">0</span></button>
               </div>
 
               <div class="filter-drawer" id="filterDrawer" hidden>
@@ -102,7 +103,9 @@
                     <option value="blue">Blue</option>
                     <option value="green">Green</option>
                     <option value="red">Red / pink</option>
+                    <option value="purple">Purple</option>
                     <option value="yellow">Yellow / orange</option>
+                    <option value="brown">Brown</option>
                   </select>
                 </label>
                 <label>Sort by
@@ -184,6 +187,29 @@
           <section class="profile-card panel-card">
             <div class="profile-card-copy"><div class="section-kicker">Body shape</div><h2>Which shape feels closest to you?</h2><p>Pick a simple visual reference. It guides suggestions, never your choices.</p></div>
             <div class="profile-options" id="profileOptions"></div>
+            <div class="profile-preferences">
+              <div class="section-kicker">Personal preference</div>
+              <label class="profile-field" for="genderSelect">Gender <span>Optional</span>
+                <select id="genderSelect">
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                  <option value="woman">Woman</option>
+                  <option value="man">Man</option>
+                  <option value="non_binary">Non-binary</option>
+                  <option value="another_identity">Another identity</option>
+                </select>
+              </label>
+              <div class="profile-photo-setting">
+                <div class="section-kicker">Profile photo</div>
+                <p>Keep a profile photo saved locally on this device.</p>
+                <div class="profile-photo-controls">
+                  <div class="profile-photo-preview" id="profilePhotoPreview"><span>◎</span><small>No photo yet</small></div>
+                  <div class="profile-photo-actions">
+                    <label class="secondary-button file-picker">Upload a photo<input id="profilePhotoInput" type="file" accept="image/*" /></label>
+                    <button type="button" class="text-button" id="removeProfilePhotoButton" hidden>Remove photo</button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="profile-save-row"><span id="profileSavedMessage">Changes are saved on this device.</span><button class="primary-button" id="saveProfileButton">Save profile</button></div>
           </section>
         </section>
@@ -195,7 +221,7 @@
         <button class="modal-close" id="closeModalButton" aria-label="Close">×</button>
         <div class="section-kicker">Add to the edit</div>
         <h2 id="modalTitle">Bring in a piece</h2>
-        <p class="modal-intro">Add a photo and let DeepSeek suggest the details before you save it locally.</p>
+        <p class="modal-intro" id="modalIntro">Add a photo and let DeepSeek suggest the details before you save it locally.</p>
         <div class="capture-zone">
           <div class="capture-preview" id="capturePreview"><span>✧</span><small>no image yet</small></div>
           <div class="capture-actions">
@@ -208,12 +234,12 @@
         <form id="itemForm">
           <div class="form-grid">
             <label class="form-field full-field">Piece name<input id="itemName" type="text" placeholder="e.g. Linen weekend shirt" required /></label>
-            <label class="form-field">Category<select id="itemCategory" required><option value="top">Top</option><option value="bottom">Bottom</option><option value="dress">Dress</option><option value="outerwear">Outerwear</option></select></label>
-            <label class="form-field">Color<select id="itemColor" required><option value="ivory">Ivory</option><option value="navy">Navy</option><option value="sage">Sage</option><option value="terracotta">Terracotta</option><option value="ochre">Ochre</option><option value="black">Black</option><option value="denim">Denim</option><option value="rose">Rose</option></select></label>
+            <label class="form-field">Category<select id="itemCategory" required><option value="top">Top</option><option value="bottom">Bottom</option><option value="dress">Dress</option><option value="outerwear">Outerwear</option><option value="underwear">Underwear</option></select></label>
+            <label class="form-field">Color<select id="itemColor" required><option value="white">White</option><option value="ivory">Ivory</option><option value="beige">Beige</option><option value="gray">Gray</option><option value="charcoal">Charcoal</option><option value="black">Black</option><option value="navy">Navy</option><option value="sky">Sky blue</option><option value="cobalt">Cobalt</option><option value="denim">Denim</option><option value="teal">Teal</option><option value="sage">Sage</option><option value="olive">Olive</option><option value="mint">Mint</option><option value="terracotta">Terracotta</option><option value="coral">Coral</option><option value="rose">Rose</option><option value="burgundy">Burgundy</option><option value="plum">Plum</option><option value="ochre">Ochre</option><option value="mustard">Mustard</option><option value="orange">Orange</option><option value="brown">Brown</option></select></label>
             <label class="form-field">Fit<select id="itemFit"><option value="relaxed">Relaxed</option><option value="regular" selected>Regular</option><option value="tailored">Tailored</option></select></label>
             <label class="form-field">Pattern<select id="itemPattern"><option value="solid">Solid</option><option value="stripe">Stripe</option><option value="floral">Floral</option><option value="check">Check</option></select></label>
           </div>
-          <div class="modal-footer"><span class="form-hint">Stored locally in this browser</span><button type="submit" class="primary-button">Add piece <span>→</span></button></div>
+          <div class="modal-footer"><span class="form-hint">Stored locally in this browser</span><button type="submit" class="primary-button" id="itemSubmitButton">Add piece <span>→</span></button></div>
         </form>
       </section>
     </div>
